@@ -1,15 +1,11 @@
-import csv
 import os
 from datetime import date
 
 import numpy as np
-import openpyxl
 import pandas as pd
-from openpyxl import Workbook
 
-pd.options.display.max_columns = None
-
-
+pd.options.display.max_columns = 500
+pd.options.display.width = 1000
 # pd.options.display.max_rows = None
 
 
@@ -87,8 +83,8 @@ class TransformMaster:
         df2['Month'] = "=\"" + df2['Month'] + "\""
 
         df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv(f'{self.archive_path}ecomm_raw.csv', index=False, encoding='utf-8')
-        df2.to_csv('Workbench/Microsoft/ecomm_raw.csv', index=False, encoding='utf-8')
+        df2.to_csv(f'{self.archive_path}ecomm_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv('Workbench/Microsoft/ecomm_raw.csv', index=False, encoding='utf-8-sig')
 
         df3 = df[['Program', 'Fiscal Year', 'Partner Type', 'User Country', 'Region',
                   'Cross Sell SKU Mfr', '1 - Product Type', '2 - Product Version', '3 - License/Product Type',
@@ -108,8 +104,8 @@ class TransformMaster:
 
         df4 = pd.read_csv('Master/eCOMM_source.csv', low_memory=False)
         df4 = pd.concat([df4, df3])
-        df4.to_csv(f'{self.archive_path}eCOMM_source.csv', index=False, encoding='utf-8')
-        df4.to_csv(self.power_bi, index=False, encoding='utf-8')
+        df4.to_csv(f'{self.archive_path}eCOMM_source.csv', index=False, encoding='utf-8-sig')
+        df4.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
 
     def epson(self):
         df = self.df_dl
@@ -120,7 +116,7 @@ class TransformMaster:
         df2 = pd.concat([self.df_master, df])
 
         df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv(f'{self.archive_path}epson_raw.csv', index=False, encoding='utf-8')
+        df2.to_csv(f'{self.archive_path}epson_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'Workbench/Epson/epson_raw.csv', index=False)
 
     def surface(self, partner_map, product_map):
@@ -138,9 +134,9 @@ class TransformMaster:
         df2['Mon'] = "=\"" + df2['Mon'] + "\""
 
         df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv('Workbench/Microsoft/surface_raw.csv', index=False, encoding='utf-8')
-        df2.to_csv(f'{self.archive_path}surface_raw.csv', index=False, encoding='utf-8')
-        df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8')
+        df2.to_csv('Workbench/Microsoft/surface_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}surface_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8-sig')
 
     def xbox(self, product_map):
         df = self.df_dl
@@ -156,15 +152,16 @@ class TransformMaster:
         df2 = pd.concat([self.df_master, df])
 
         df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv('Workbench/Microsoft/xbox_raw.csv', index=False, encoding='utf-8')
-        df2.to_csv(f'{self.archive_path}xbox_raw.csv', index=False, encoding='utf-8')
-        df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8')
+        df2.to_csv('Workbench/Microsoft/xbox_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}xbox_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8-sig')
 
     def dccn_asset(self, campaign_topic_map, asset_code):
+        # FIX THE FUCKING QUERY - THIS IS ASININE
         df = self.df_dl
         month = self.s_month.split('-')
         long_month = month_full(month[1])
-        df.insert(0, 'month', self.s_month, False)
+        df['Month'] = self.s_month
         df.insert(2, 'DisplayMonth', long_month, False)
         df['d'] = df['DownloadType'] + df['Asset']
 
@@ -175,33 +172,49 @@ class TransformMaster:
 
         df = pd.merge(df, campaign_topic_map, left_on='Asset', right_on='Asset', how='left')
         df = pd.merge(df, asset_code, left_on='d', right_on='Concat', how='left')
-        df = df.rename(columns={'Year': 'Fiscal Year', 'TopicName': 'Asset Sub', 'TopicSource': 'Partner Name',
-                                'ParentTopicName': 'partnertype', 'Asset': 'Asset Name', 'EventCount': 'eventcount',
-                                'Campaign Topic': 'Asset Topic', 'downloadtype': 'Asset Type',
-                                'code': 'Asset Code', 'Level2Name': '2nd Level Sub-Topic'})
+        df = df.rename(
+            columns={'Year': 'Fiscal Year', 'TopicName': 'Asset Sub', 'TopicSource': 'Partner Name',
+                     'ParentTopicName': 'partnertype', 'Asset': 'Asset Name', 'EventCount': 'eventcount',
+                     'Campaign Topic': 'Asset Topic', 'downloadtype': 'Asset Type',
+                     'code': 'Asset Code', 'Level2Name': '2nd Level Sub-Topic'})
 
         df['Asset Sub-Topic'] = df['Campaign Name']
         df.insert(6, 'countryname', '', False)
         df.insert(6, 'countrystage', '', False)
         df.insert(6, 'region', '', False)
 
-        df = df[['month', 'Fiscal Year', 'DisplayMonth', 'eventcount', 'Partner Name', 'countryname', 'countrystage',
+        df = df[['Month', 'Fiscal Year', 'DisplayMonth', 'eventcount', 'Partner Name', 'countryname', 'countrystage',
                  'region', 'partnertype', 'Asset Type', 'Asset Name', 'Partner Type', 'Asset Topic', 'Asset Sub',
                  'Asset Sub-Topic', '2nd Level Sub-Topic', 'Asset Code', 'd']]
 
         df2 = pd.concat([self.df_master, df], ignore_index=True)
 
-        df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv('Workbench/Microsoft/dccn_simplified_asset_raw.csv', index=False, encoding='utf-8')
-        df2.to_csv(f'{self.archive_path}dccn_simplified_asset_raw.csv', index=False, encoding='utf-8')
+        print(df2)
+        # df2['Month'] = df2['Month'].apply(str)
+        #
+        # print(df2['Month'].dtypes)
+        # print(df2)
+        df2.loc[df2['Month'].str.len() < 6, ['Month']] = '0' + df2['Month']
+        df2['Month'] = '="' + df2['Month'] + '"'
 
-        df = df.rename(columns={'Fiscal Year': 'year', 'DisplayMonth': 'Month_Num'})
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/dccn_simplified_asset_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}dccn_simplified_asset_raw.csv', index=False, encoding='utf-8-sig')
+
+        df = df.rename(columns={'Month': 'month', 'Fiscal Year': 'year'})
         df.insert(12, 'Campaign Sponsor', 'Microsoft', False)
         df['Month_Num'] = int(month[0])
+        df = df[
+            ['month', 'year', 'Month_Num', 'DisplayMonth', 'eventcount', 'Partner Name', 'countryname', 'countrystage',
+             'region', 'partnertype', 'Asset Type', 'Asset Name', 'Campaign Sponsor', 'Partner Type', 'Asset Topic',
+             'Asset Sub',
+             'Asset Sub-Topic', '2nd Level Sub-Topic', 'Asset Code']]
         df3 = pd.read_csv('Master/DCCN_Asset data_source.csv', low_memory=False)
         df3 = pd.concat([df3, df], ignore_index=True)
-        df3.to_csv(self.power_bi, index=False, encoding='utf-8')
-        df3.to_csv(f'{self.archive_path}DCCN_Asset data_source.csv', index=False, encoding='utf-8')
+        df3 = df3.drop('Unnamed: 19', axis=1)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}DCCN_Asset data_source.csv', index=False, encoding='utf-8-sig')
+        print(df3)
 
     def dccn_master(self, campaign_topic_map, geo_map, partner_map):
         df = self.df_dl
@@ -224,8 +237,11 @@ class TransformMaster:
         df.loc[df['registered_country'].isnull(), ['registered_country']] = df['country']
         df.loc[df['country'] == 'USA', ['registered_country']] = 'United States'
         df.loc[df['registered_country'] == 'Russia', ['registered_country']] = 'Russian Federation'
-        df.loc[df['registered_country'] == 'Korea, South', ['registered_country']] = 'South Korea'
-        df.loc[df['registered_country'] == 'Russia', ['registered_country']] = 'South Korea'
+        df.loc[df['registered_country'] == 'Korea, South', ['registered_country']] = 'Korea South'
+        df.loc[df['registered_country'] == 'South Korea', ['registered_country']] = 'Korea South'
+
+        # df.loc[df['Month of FiscalYear'].str.len() < 6, ['Month of FiscalYear']] = '0' + df['Month of FiscalYear']
+        # df['Month of FiscalYear'] = '="' + df['Month of FiscalYear'] + '"'
 
         df = pd.merge(df, campaign_topic_map, left_on='campaignname', right_on='Campaign Name', how='left')
         df = pd.merge(df, geo_map, left_on='registered_country', right_on='Country Name', how='left')
@@ -256,8 +272,8 @@ class TransformMaster:
         df2 = pd.concat([self.df_master, df], ignore_index=True)
 
         df.to_csv(self.stage, sep='\t', index=False)
-        df2.to_csv('Workbench/Microsoft/dccn_trend_detail_raw.csv', index=False, encoding='utf-8')
-        df2.to_csv(f'{self.archive_path}dccn_trend_detail_raw.csv', index=False, encoding='utf-8')
+        df2.to_csv('Workbench/Microsoft/dccn_trend_detail_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}dccn_trend_detail_raw.csv', index=False, encoding='utf-8-sig')
 
         # Create 2nd report for PowerBI
         df3 = pd.read_csv('Master/DCCN_Master_Source.csv', low_memory=False)
@@ -272,10 +288,321 @@ class TransformMaster:
         df['Week End Date'] = ''
         df['Total Downloads'] = ''
 
-        df = df[['FiscalYear', 'Month of FiscalYear', 'Month', 'Campaign Topic', 'MNA Hierarchy', 'Campaign Name', 'Partner Name', 'Country Stage', 'Region', 'Country Name', 'Status', 'Registered Date', 'Partner Type', 'Locale Name', 'WeekNum', 'Impressions', 'MonthNum', 'Week Number', 'Week End Date', 'Click Throughs', 'Contact Us', 'Buy Now', 'Total Downloads', 'Microsite Click-withins']]
+        df = df[['FiscalYear', 'Month of FiscalYear', 'Month', 'Campaign Topic', 'MNA Hierarchy', 'Campaign Name',
+                 'Partner Name', 'Country Stage', 'Region', 'Country Name', 'Status', 'Registered Date', 'Partner Type',
+                 'Locale Name', 'WeekNum', 'Impressions', 'MonthNum', 'Week Number', 'Week End Date', 'Click Throughs',
+                 'Contact Us', 'Buy Now', 'Total Downloads', 'Microsite Click-withins']]
         df3 = pd.concat([df3, df], ignore_index=True)
-        df3.to_csv(self.power_bi, index=False, encoding='utf-8')
-        df3.to_csv(f'{self.archive_path}DCCN_Master_Source.csv', index=False, encoding='utf-8')
+
+        df3.loc[df3['Country Name'] == 'Russia', ['Country Name']] = 'Russian Federation'
+        df3.loc[df3['Country Name'] == 'Korea, South', ['Country Name']] = 'Korea South'
+        df3.loc[df3['Country Name'] == 'South Korea', ['Country Name']] = 'Korea South'
+
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}DCCN_Master_Source.csv', index=False, encoding='utf-8-sig')
+
+    def dccn_partner(self, geo_map):
+        pass
+
+    def dccn_gated(self):
+        df = self.df_dl
+        month = self.s_month.split('-')
+        df.insert(2, 'Month2', month[1], False)
+        df['Month'] = month[0]
+
+        df = df.rename(columns={'Month': 'month num', 'Year': 'Fiscal Year', 'Month2': 'Month', 'TopicId': 'topic_id',
+                                'TopicName': 'topic_name',
+                                'country': 'access_country_name', 'LanguageName': 'requested_language'})
+        df = df[
+            ['month num', 'Fiscal Year', 'Month', 'topic_id', 'topic_name', 'access_country_name', 'requested_language',
+             'partner_name', 'download']]
+
+        df['topic_id'] = df['topic_id'].str.lstrip('node:ms:')
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/dccn_gated_content_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}dccn_gated_content_raw.csv', index=False, encoding='utf-8-sig')
+
+        df = df.rename(columns={'Fiscal Year': 'fiscal year'})
+
+        df3 = pd.read_csv('Master/Gated_Content_Topic.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}Gated_Content_Topic.csv', index=False, encoding='utf-8-sig')
+
+    def ar_master(self, geo_map, product_map):
+        df = self.df_dl
+
+        df = df.drop(['inline_content_impressions'], axis=1)
+        df = df.drop(['viewport'], axis=1)
+
+        df = pd.merge(df, geo_map, left_on='access_country_name', right_on='Country Name', how='left')
+        df = pd.merge(df, product_map, left_on='clean_mfr_pn', right_on='PN', how='left')
+
+        df = df.rename(columns={'Product': 'Category', 'MS Region': 'Region', 'Model':'Product', 'mobile': 'Mobile'})
+        df = df[['month', 'year', 'mfr_name', 'clean_mfr_pn', 'supplied_mfg_pn', 'Category', 'Product', 'Region',
+                 'access_country_name', 'requested_language', 'partner_name', 'ActionName', 'asset', 'Program', 'Block',
+                 'Mobile', 'interaction_count', 'viewport_all']]
+
+        df.loc[df['Category'].isnull(), ['Category']] = 'Other'
+        df.loc[df['Product'].isnull(), ['Product']] = 'Unmapped'
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ar_master_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ar_master_raw.csv', index=False, encoding='utf-8-sig')
+
+        df = df.rename(columns={'month': 'monthnum'})
+        df = df.drop(['Category'], axis=1)
+        df = df.drop(['Product'], axis=1)
+        df = df.drop(['Region'], axis=1)
+        df.insert(2, 'Month', self.s_month, False)
+
+        df3 = pd.read_csv('Master/MS_AR_Source.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}MS_AR_Source.csv', index=False, encoding='utf-8-sig')
+
+    def ar_url(self):
+        df = self.df_dl
+        df = df[['pn', 'partner', 'Url']]
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ar_url_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ar_url_raw.csv', index=False, encoding='utf-8-sig')
+
+        df3 = pd.read_csv('Master/AR_URL_Source.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}AR_URL_Source.csv', index=False, encoding='utf-8-sig')
+
+    def ms_inline(self, partner_map, product_map, geo_map):
+        df = self.df_dl
+        month = self.s_month.split('-')
+
+        df['monthcalendarnum'] = calendar_month(month[1])
+        df['nnmmm'] = self.s_month
+        df['monthtext'] = month[1]
+        df['monthnum'] = int(month[0])
+
+        df = pd.merge(df, partner_map, left_on='partner', right_on='Partner (Pre-aggregated)', how='left')
+        df = pd.merge(df, product_map, left_on='pn', right_on='PN', how='left')
+        df = pd.merge(df, geo_map, left_on='access_country_name', right_on='Country Name', how='left')
+
+        df = df.rename(columns={'inline_content_impressions': 'Impressions', 'inline_content_viewport': 'Viewport',
+                                'inline_content_interactions': 'Interactions',
+                                'impression_w_interaction_all': 'Interacted', 'Product': 'Category',
+                                'MS Region': 'Region'})
+        df = df[['year', 'monthcalendarnum', 'nnmmm', 'monthnum', 'monthtext', 'mfr_name', 'pn', 'partner', 'program',
+                 'access_country_name', 'requested_language', 'Impressions', 'Viewport', 'Interactions', 'Interacted',
+                 'Account Type', 'Model', 'Category', 'Region']]
+
+        # df.loc[df['nnmmm'].str.len() < 6, ['nnmmm']] = '0' + df['nnmmm']
+        # df['nnmmm'] = '="' + df['nnmmm'] + '"'
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+
+        # df2.loc[df2['nnmmm'].str.len() < 6, ['nnmmm']] = '0' + df2['nnmmm']
+        # df2['nnmmm'] = '="' + df2['nnmmm'] + '"'
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ms_inline_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ms_inline_raw.csv', index=False, encoding='utf-8-sig')
+
+        df = df[['year', 'monthcalendarnum', 'nnmmm', 'monthnum', 'monthtext', 'mfr_name', 'pn', 'partner', 'program',
+                 'access_country_name', 'requested_language', 'Impressions', 'Viewport', 'Interactions', 'Interacted']]
+
+        df3 = pd.read_csv('Master/Inline_Source.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}Inline_Source.csv', index=False, encoding='utf-8-sig')
+
+    def ms_w11(self, partner_map, product_map):
+        df = self.df_dl
+
+        df['Month'] = self.s_month
+
+        df = pd.merge(df, partner_map, left_on='partner_name', right_on='Partner (Pre-aggregated)', how='left')
+        df = pd.merge(df, product_map, left_on='product_sku', right_on='PN', how='left')
+
+        df = df.rename(columns={'month': 'month_num', 'Account Type': 'Account'})
+        df = df[['month_num', 'year', 'Month', 'program', 'access_country_name', 'requested_language', 'partner_name',
+                 'mfr_name', 'product_sku', 'ActionContext', 'Account', 'Product', 'impression', 'interaction',
+                 'viewport', 'Hover_impression', 'click', 'tab_navitation', 'feature_click']]
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ms_w11_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ms_w11_raw.csv', index=False, encoding='utf-8-sig')
+
+        df = df[['month_num', 'year', 'Month', 'program', 'access_country_name', 'requested_language', 'partner_name',
+                 'mfr_name', 'product_sku', 'ActionContext', 'Account', 'impression', 'interaction', 'viewport',
+                 'Hover_impression', 'click', 'tab_navitation', 'feature_click']]
+
+        df.loc[df['Month'].str.len() < 6, ['Month']] = '0' + df['Month']
+        df['Month'] = '="' + df['Month'] + '"'
+
+        df3 = pd.read_csv('Master/W11_Source.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}W11_Source.csv', index=False, encoding='utf-8-sig')
+
+    def ms_cnet(self):
+        df = self.df_dl
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ms_cnet_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ms_cnet_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+
+    def ms_store(self):
+        df = self.df_dl
+        df = df.rename(columns={'inline_content_impressions': 'review_impressions'})
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        print(df2)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ms_store_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ms_store_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+
+    def complimentary_inject(self):
+        # This is probably a worthless file in PowerBI - Don't bother
+        df = self.df_dl
+        print(df)
+
+        today = date.today()
+        month = int(today.strftime("%m")) - 1
+        year = int(today.strftime('%Y'))
+        if month < 1:
+            month = 12
+
+        df.insert(0, 'year', year, False)
+        df.insert(0, 'month', year, False)
+
+    def ficon(self):
+        df = self.df_dl
+        df = df.drop(['mobile'], axis=1)
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df2 = df2.drop(['Column1'], axis=1)
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ficon_master_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ficon_master_raw.csv', index=False, encoding='utf-8-sig')
+
+    def asus_qbr(self, asus_map):
+        df = self.df_dl
+
+        df = pd.merge(df, asus_map, left_on='pn', right_on='MPN', how='left')
+
+        df = df.rename(columns={'Business unit': 'Business Unit'})
+        df = df[['Year', 'Month', 'Quarter', 'mfr_name', 'partner', 'pn', 'access_country_name', 'requested_language', 'program', 'Labels', 'Supcean', 'NewPN', 'Category', 'Business', 'Unit', 'ProductId', 'inline_content_impressions', 'inline_content_viewport', 'inline_content_interactions', 'interacted_inline', 'video_play', 'feature_zoom', 'feature_hover', 'gallery_zoom', 'gallery_hover', 'hotspot_interactions', 'interactions_360', 'comptable_interactions']]
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Other/asus_qbr_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}asus_qbr_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+
+
+    def hp_inject(self):
+        df = self.df_dl
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/HPLenovoDEllXIS/hp_injection_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}hp_injection_raw.csv', index=False, encoding='utf-8-sig')
+
+        df3 = pd.read_csv('Master/HPMS_Injection_data_append_new.csv', low_memory=False)
+        df = df.rename(columns={'Month': 'MonthNum', 'Inj': 'inj'})
+        df.insert(2, 'Month', self.s_month, False)
+
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}HPMS_Injection_data_append_new.csv', index=False, encoding='utf-8-sig')
+
+    def dell_inject(self):
+        df = self.df_dl
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/HPLenovoDEllXIS/dell_injection_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}dell_injection_raw.csv', index=False, encoding='utf-8-sig')
+
+        df3 = pd.read_csv('Master/HPMS_Injection_data_append_new.csv', low_memory=False)
+        df = df.rename(columns={'Month': 'MonthNum', 'Inj': 'inj'})
+        df.insert(2, 'Month', self.s_month, False)
+
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}DellMS_Injection_data.csv', index=False, encoding='utf-8-sig')
+
+    def lenovo_inject(self):
+        df = self.df_dl
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/HPLenovoDEllXIS/lenovo_injection_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}lenovo_injection_raw.csv', index=False, encoding='utf-8-sig')
+
+        df3 = pd.read_csv('Master/LenovoMS_Injection_data.csv', low_memory=False)
+        df = df.rename(columns={'Month': 'MonthNum', 'Inj': 'inj'})
+        df.insert(2, 'Month', self.s_month, False)
+
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}LenovoMS_Injection_data.csv', index=False, encoding='utf-8-sig')
+
+    def xis_inject(self, partner_map, product_map):
+        df = self.df_dl
+        df['mm'] = self.s_month
+
+        df = pd.merge(df, partner_map, left_on='partner', right_on='Partner (Pre-aggregated)', how='left')
+        df = pd.merge(df, product_map, left_on='pn', right_on='PN', how='left')
+
+        df = df.drop(['model'], axis=1)
+        df = df.rename(columns={'Model': 'model', 'Account Type': 'Account'})
+        df = df[['year', 'month', 'mm', 'mfr_name', 'pn', 'model', 'partner', 'Account', 'access_country_name',
+                 'requested_language', 'inline_content_impressions', 'inline_content_viewport',
+                 'inline_content_interactions', 'Url']]
+
+        df.loc[df['mm'].str.len() < 6, ['mm']] = '0' + df['mm']
+        df['mm'] = '="' + df['mm'] + '"'
+        df = df[df['partner'].str.startswith('1World') == False]
+
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+
+        df2 = df2[df2['partner'].str.startswith('1World') == False]
+
+        df2.to_csv('Workbench/HPLenovoDEllXIS/xis_injection_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}xis_injection_raw.csv', index=False, encoding='utf-8-sig')
+
+        df['model'] = ''
+        df = df.drop(['Account'], axis=1)
+        df3 = pd.read_csv('Master/MS_XIS.csv', low_memory=False)
+        df3 = pd.concat([df3, df], ignore_index=True)
+        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        df3.to_csv(f'{self.archive_path}W11_Source.csv', index=False, encoding='utf-8-sig')
+
+    def url_inject(self):
+        df = self.df_dl
+
+        df = df.rename(columns={'Inj': 'inj'})
+        df = df[['mfr_name', 'Sponsor', 'ClearMfPn', 'access_country_name', 'requested_language', 'partner_name', 'Url',
+                 'template', 'inj']]
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+
+        df2 = df2.drop_duplicates(['mfr_name', 'ClearMfPn'])
+
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/HPLenovoDEllXIS/hplenovodell_url_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}hplenovodell_url_raw.csv', index=False, encoding='utf-8-sig')
 
 
 def month_full(mon):
@@ -304,3 +631,31 @@ def month_full(mon):
             return 'November'
         case 'December':
             return 'December'
+
+
+def calendar_month(mon):
+    match mon:
+        case 'Jan':
+            return 1
+        case 'Feb':
+            return 2
+        case 'Mar':
+            return 3
+        case 'Apr':
+            return 4
+        case 'May':
+            return 5
+        case 'Jun':
+            return 6
+        case 'Jul':
+            return 7
+        case 'Aug':
+            return 8
+        case 'Sep':
+            return 9
+        case 'Oct':
+            return 10
+        case 'Nov':
+            return 11
+        case 'December':
+            return 12

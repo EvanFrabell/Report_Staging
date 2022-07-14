@@ -3,14 +3,35 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="\Downloads\6-2022\dccn_factevent.csv">
+        <entry key="\Master\Archive\6-2022\dccn_partner_detail_raw.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\Master\SurfaceRecommends_source.csv">
+        <entry key="\Master\Archive\6-2022\dccn_simplified_asset_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\MS_AR_Source.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\ar_url_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\dccn_partner_detail_raw.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -31,6 +52,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\Master\surface_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\Master_bkp\6-2022\epson_raw.csv">
           <value>
             <Attribute>
@@ -38,7 +66,21 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\PowerBI\PBI-DCCN\Gated_Content_Topic.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\ReferenceTable\asset_code.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\ReferenceTable\asus_map.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -66,6 +108,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\ReferenceTable\lcid_map.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\ReferenceTable\partner_map.csv">
           <value>
             <Attribute>
@@ -73,14 +122,21 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\Workbench\Microsoft\surface_raw.csv">
+        <entry key="\ReferenceTable\price_map.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\Workbench\epson_finder.csv">
+        <entry key="\ReferenceTable\product_map.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Workbench\Microsoft\surface_raw.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
