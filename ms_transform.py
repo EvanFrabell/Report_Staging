@@ -6,19 +6,23 @@ import pandas as pd
 
 pd.options.display.max_columns = 500
 pd.options.display.width = 1000
+
+
 # pd.options.display.max_rows = None
 
 
 class TransformMaster:
-    def __init__(self, download, stage, master, power_bi, s_month, archive_date):
+    def __init__(self, download, stage, master, power_bi, s_month, ms_date):
         self.download = download
         self.stage = stage
         self.master = master
         self.power_bi = power_bi
         self.df_dl = pd.read_csv(self.download, '\t', low_memory=False)
-        self.df_master = pd.read_csv(self.master, low_memory=False)
+        self.df_master = pd.read_csv(self.master, low_memory=False, encoding='utf-8-sig')
         self.s_month = s_month
-        self.archive_path = f'Master/Archive/{archive_date}/'
+        self.ms_month = int(ms_date.split("-")[0])
+        self.ms_year = int(ms_date.split("-")[1])
+        self.archive_path = f'Master/Archive/{ms_date}/'
 
         dir_exists = os.path.exists(self.archive_path)
         if not dir_exists:
@@ -26,6 +30,10 @@ class TransformMaster:
 
     def ecom(self, p_map, l_map, g_map, price_map):
         df = self.df_dl
+
+        df['partner'] = np.where(df['SubscriberId'] == '45fbdc77', 'Evetech', df['partner'])
+        df['partner'] = np.where(df['SubscriberId'] == '6a349fab', 'SCGLOBAL', df['partner'])
+        df['partner'] = np.where(df['SubscriberId'] == 'c375c05d', 'TECNOMEGA C.A.', df['partner'])
 
         # Future Scrape -- Filter
         # for 1000+ logos served with no partner name, search for partner name in browser by subscriberID
@@ -52,7 +60,8 @@ class TransformMaster:
         df['Total Revenue'] = df['Add_to_cart_qty'] * df['Price_Measure']
 
         df['Partner Type'] = np.where(df['Partner Type'].isnull(), 'Unmapped', df['Partner Type'])
-
+        # DANGEROUS!!!
+        # df['Partner Name (Aggregated)'] = df['partner']
         df = df.drop('Partner (Pre-aggregated)', axis=1)
         df = df.drop('Region', axis=1)
 
@@ -79,8 +88,8 @@ class TransformMaster:
                    'Partner (Pre-aggregated)', 'Delete?', 'DeleteTester', 'Stopped/NotLive']
 
         df = df[columns]
+        df['Month'] = "=\"" + df['Month'] + "\""
         df2 = pd.concat([self.df_master, df])
-        df2['Month'] = "=\"" + df2['Month'] + "\""
 
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv(f'{self.archive_path}ecomm_raw.csv', index=False, encoding='utf-8-sig')
@@ -117,10 +126,11 @@ class TransformMaster:
 
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv(f'{self.archive_path}epson_raw.csv', index=False, encoding='utf-8-sig')
-        df2.to_csv(f'Workbench/Epson/epson_raw.csv', index=False)
+        df2.to_csv(f'Workbench/Epson/epson_raw.csv', index=False, encoding='utf-8-sig')
 
     def surface(self, partner_map, product_map):
         df = self.df_dl
+        df['year'] = self.ms_year
         df.insert(2, 'Mon', self.s_month, False)
         df = pd.merge(df, partner_map, left_on='partner_name', right_on='Partner (Pre-aggregated)', how='left')
         df = pd.merge(df, product_map, left_on='product_sku', right_on='PN', how='left')
@@ -130,16 +140,18 @@ class TransformMaster:
                  'Cross_Sell_SKU_Manufacturer', 'Cross_Sell_SKU_PN', 'Title', 'Price', 'impression', 'interaction',
                  'viewport', 'viewdetail', 'atc']]
 
+        df['Mon'] = "'" + df['Mon']
         df2 = pd.concat([self.df_master, df])
-        df2['Mon'] = "=\"" + df2['Mon'] + "\""
 
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/Microsoft/surface_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'{self.archive_path}surface_raw.csv', index=False, encoding='utf-8-sig')
+        # df2['Mon'] = df2['Mon'].str[2:8]
         df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8-sig')
 
     def xbox(self, product_map):
         df = self.df_dl
+        df['year'] = self.ms_year
         month = self.s_month.split('-')
         df.insert(3, 'month_t', month[1], False)
         df.insert(3, 'month_num', int(month[0]), False)
@@ -157,8 +169,9 @@ class TransformMaster:
         df2.to_excel(self.power_bi, sheet_name='raw', index=False, header=True, encoding='utf-8-sig')
 
     def dccn_asset(self, campaign_topic_map, asset_code):
-        # FIX THE FUCKING QUERY - THIS IS ASININE
+        # FIX THE QUERY - THIS IS ASININE
         df = self.df_dl
+        df['Year'] = self.ms_year
         month = self.s_month.split('-')
         long_month = month_full(month[1])
         df['Month'] = self.s_month
@@ -211,7 +224,7 @@ class TransformMaster:
              'Asset Sub-Topic', '2nd Level Sub-Topic', 'Asset Code']]
         df3 = pd.read_csv('Master/DCCN_Asset data_source.csv', low_memory=False)
         df3 = pd.concat([df3, df], ignore_index=True)
-        df3 = df3.drop('Unnamed: 19', axis=1)
+        # df3 = df3.drop('Unnamed: 19', axis=1)
         df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
         df3.to_csv(f'{self.archive_path}DCCN_Asset data_source.csv', index=False, encoding='utf-8-sig')
         print(df3)
@@ -219,18 +232,19 @@ class TransformMaster:
     def dccn_master(self, campaign_topic_map, geo_map, partner_map):
         df = self.df_dl
         month = self.s_month.split('-')
+        df['Year'] = self.ms_year
         df['Month of FiscalYear'] = self.s_month
         df['Month'] = month[1]
-
-        blanks = df[(df['partner_name'].isna()) & (df['campaign_impressions'] > 1000)]
-        print(blanks[['partner_name', 'SubscriberId', 'campaign_impressions']])
-        print('!!!!!!!!!!!!!!!!!!FILL IN THE dccn_factevent.tsv SHEET WITH MISSING PARTNER NAMES!!!!!!!!!!!!!!!!!!!')
 
         # This is temporary, but it doesn't hurt to leave
         df['partner_name'] = np.where(df['SubscriberId'] == '12355b71', 'Pegasus Computer Limited', df['partner_name'])
         df['registered_country'] = np.where(df['SubscriberId'] == '12355b71', 'Taiwan', df['registered_country'])
         df['registered_url'] = np.where(df['SubscriberId'] == '12355b71', 'https://shop.pegasus.hk/',
                                         df['registered_url'])
+
+        blanks = df[(df['partner_name'].isna()) & (df['campaign_impressions'] > 1000)]
+        print(blanks[['partner_name', 'SubscriberId', 'campaign_impressions']])
+        print('!!!!!!!!!!!!!!!!!!FILL IN THE dccn_factevent.tsv SHEET WITH MISSING PARTNER NAMES!!!!!!!!!!!!!!!!!!!')
 
         df = df.loc[df['partner_name'].isnull() == False]
 
@@ -241,16 +255,26 @@ class TransformMaster:
         df.loc[df['registered_country'] == 'South Korea', ['registered_country']] = 'Korea South'
 
         # df.loc[df['Month of FiscalYear'].str.len() < 6, ['Month of FiscalYear']] = '0' + df['Month of FiscalYear']
-        # df['Month of FiscalYear'] = '="' + df['Month of FiscalYear'] + '"'
+        df['Month of FiscalYear'] = '="' + df['Month of FiscalYear'] + '"'
 
         df = pd.merge(df, campaign_topic_map, left_on='campaignname', right_on='Campaign Name', how='left')
+        print(campaign_topic_map)
         df = pd.merge(df, geo_map, left_on='registered_country', right_on='Country Name', how='left')
         df = pd.merge(df, partner_map, left_on='partner_name', right_on='Partner (Pre-aggregated)', how='left')
+        print(df.loc[df['partner_name'] == 'Weblink International Inc.'])
 
-        df.loc[df['campaignname'].str.startswith('ms62'), ['campaignname']] = df['True Name']
+        # df.loc[df['campaignname'].str.startswith('ms62'), ['campaignname']] = df['True Name']
+        # df.loc[df['True Name'] != 'xxx', ['campaignname']] = df['True Name']
+        df['campaignname'] = np.where((df['True Name'] != 'xxx') & (df['True Name'].notnull()), df['True Name'],
+                                      df['campaignname'])
         df.loc[df['Partner Type'].isnull(), ['Partner Type']] = 'Unmapped'
-        # 'campaignname': 'Campaign Name',
-        df = df.rename(columns={'Year': 'FiscalYear', 'banner_size': 'Banner',
+
+        print(df.loc[df['Campaign Name'] == 'ms6210282374400'])
+        print(df.loc[df['partner_name'] == 'Weblink International Inc.'])
+
+        df = df.drop(['Campaign Name'], axis=1)
+
+        df = df.rename(columns={'Year': 'FiscalYear', 'campaignname': 'Campaign Name', 'banner_size': 'Banner',
                                 'partner_name': 'Partner Name', 'LanguageName': 'Locale Name',
                                 'registered_country': 'Country Name', 'registered_url': 'Registration URL',
                                 'campaign_impressions': 'Impressions', 'click_through': 'Click Throughs',
@@ -267,8 +291,6 @@ class TransformMaster:
              'Contact Us', 'Buy Now', 'Contact Us Submit', 'Microsite Click-withins', 'Campaign Code',
              'Partner Type', 'Change if 1', 'Partner Name (Aggregated)']]
 
-        print(list(df.columns))
-        print(list(self.df_master.columns))
         df2 = pd.concat([self.df_master, df], ignore_index=True)
 
         df.to_csv(self.stage, sep='\t', index=False)
@@ -292,6 +314,10 @@ class TransformMaster:
                  'Partner Name', 'Country Stage', 'Region', 'Country Name', 'Status', 'Registered Date', 'Partner Type',
                  'Locale Name', 'WeekNum', 'Impressions', 'MonthNum', 'Week Number', 'Week End Date', 'Click Throughs',
                  'Contact Us', 'Buy Now', 'Total Downloads', 'Microsite Click-withins']]
+
+        df['Month of FiscalYear'] = df['Month of FiscalYear'].str.replace('=', '')
+        df['Month of FiscalYear'] = df['Month of FiscalYear'].str.replace('"', '')
+
         df3 = pd.concat([df3, df], ignore_index=True)
 
         df3.loc[df3['Country Name'] == 'Russia', ['Country Name']] = 'Russian Federation'
@@ -306,6 +332,7 @@ class TransformMaster:
 
     def dccn_gated(self):
         df = self.df_dl
+        df['Year'] = self.ms_year
         month = self.s_month.split('-')
         df.insert(2, 'Month2', month[1], False)
         df['Month'] = month[0]
@@ -335,19 +362,23 @@ class TransformMaster:
     def ar_master(self, geo_map, product_map):
         df = self.df_dl
 
+        df['year'] = self.ms_year
+
         df = df.drop(['inline_content_impressions'], axis=1)
         df = df.drop(['viewport'], axis=1)
 
         df = pd.merge(df, geo_map, left_on='access_country_name', right_on='Country Name', how='left')
         df = pd.merge(df, product_map, left_on='clean_mfr_pn', right_on='PN', how='left')
 
-        df = df.rename(columns={'Product': 'Category', 'MS Region': 'Region', 'Model':'Product', 'mobile': 'Mobile'})
+        df = df.rename(columns={'Product': 'Category', 'MS Region': 'Region', 'Model': 'Product', 'mobile': 'Mobile'})
         df = df[['month', 'year', 'mfr_name', 'clean_mfr_pn', 'supplied_mfg_pn', 'Category', 'Product', 'Region',
                  'access_country_name', 'requested_language', 'partner_name', 'ActionName', 'asset', 'Program', 'Block',
                  'Mobile', 'interaction_count', 'viewport_all']]
 
         df.loc[df['Category'].isnull(), ['Category']] = 'Other'
         df.loc[df['Product'].isnull(), ['Product']] = 'Unmapped'
+
+        df = df.drop(df[df['partner_name'].str.startswith('1W', na=False)].index)
 
         df2 = pd.concat([self.df_master, df], ignore_index=True)
 
@@ -385,6 +416,7 @@ class TransformMaster:
         df = self.df_dl
         month = self.s_month.split('-')
 
+        df['year'] = self.ms_year
         df['monthcalendarnum'] = calendar_month(month[1])
         df['nnmmm'] = self.s_month
         df['monthtext'] = month[1]
@@ -426,34 +458,43 @@ class TransformMaster:
         df = self.df_dl
 
         df['Month'] = self.s_month
+        df['year'] = self.ms_year
 
         df = pd.merge(df, partner_map, left_on='partner_name', right_on='Partner (Pre-aggregated)', how='left')
         df = pd.merge(df, product_map, left_on='product_sku', right_on='PN', how='left')
+
+        # for 1000+ logos served with no partner name, search for partner name in browser by subscriberID
+        blanks = df[(df['partner_name'].isna()) & (df['impression'] > 1000)]
+        print(blanks[['partner_name', 'access_country_name', 'mfr_name', 'product_sku', 'impression']])
+        print('!!!!!!!!!!!!!!!!!!FILL IN THE ms_w11.tsv SHEET WITH MISSING PARTNERS!!!!!!!!!!!!!!!!!!!')
+        df = df[df['partner_name'].isna() == False]
 
         df = df.rename(columns={'month': 'month_num', 'Account Type': 'Account'})
         df = df[['month_num', 'year', 'Month', 'program', 'access_country_name', 'requested_language', 'partner_name',
                  'mfr_name', 'product_sku', 'ActionContext', 'Account', 'Product', 'impression', 'interaction',
                  'viewport', 'Hover_impression', 'click', 'tab_navitation', 'feature_click']]
 
+        df['Month'] = "'" + df['Month']
+
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/Microsoft/ms_w11_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'{self.archive_path}ms_w11_raw.csv', index=False, encoding='utf-8-sig')
 
-        df = df[['month_num', 'year', 'Month', 'program', 'access_country_name', 'requested_language', 'partner_name',
-                 'mfr_name', 'product_sku', 'ActionContext', 'Account', 'impression', 'interaction', 'viewport',
-                 'Hover_impression', 'click', 'tab_navitation', 'feature_click']]
+        df2 = df2[['month_num', 'year', 'Month', 'program', 'access_country_name', 'requested_language', 'partner_name',
+                   'mfr_name', 'product_sku', 'ActionContext', 'Account', 'impression', 'interaction', 'viewport',
+                   'Hover_impression', 'click', 'tab_navitation', 'feature_click']]
 
-        df.loc[df['Month'].str.len() < 6, ['Month']] = '0' + df['Month']
-        df['Month'] = '="' + df['Month'] + '"'
+        # df2.loc[df['Month'].str.len() < 6, ['Month']] = '0' + df['Month']
+        # df2['Month'] = '="' + df['Month'] + '"'
 
-        df3 = pd.read_csv('Master/W11_Source.csv', low_memory=False)
-        df3 = pd.concat([df3, df], ignore_index=True)
-        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
-        df3.to_csv(f'{self.archive_path}W11_Source.csv', index=False, encoding='utf-8-sig')
+        # df3 = pd.read_csv('Master/ms_w11_raw.csv', low_memory=False)
+        # df3 = pd.concat([df3, df], ignore_index=True)
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
 
     def ms_cnet(self):
         df = self.df_dl
+        df['year'] = self.ms_year
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/Microsoft/ms_cnet_raw.csv', index=False, encoding='utf-8-sig')
@@ -462,34 +503,36 @@ class TransformMaster:
 
     def ms_store(self):
         df = self.df_dl
+        df['year'] = self.ms_year
         df = df.rename(columns={'inline_content_impressions': 'review_impressions'})
         df2 = pd.concat([self.df_master, df], ignore_index=True)
-        print(df2)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/Microsoft/ms_store_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'{self.archive_path}ms_store_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
 
-    def complimentary_inject(self):
-        # This is probably a worthless file in PowerBI - Don't bother
+    def ms_sis(self):
         df = self.df_dl
-        print(df)
+        df2 = pd.concat([self.df_master, df], ignore_index=True)
+        df.to_csv(self.stage, sep='\t', index=False)
+        df2.to_csv('Workbench/Microsoft/ms_sis_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(f'{self.archive_path}ms_sis_raw.csv', index=False, encoding='utf-8-sig')
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
 
-        today = date.today()
-        month = int(today.strftime("%m")) - 1
-        year = int(today.strftime('%Y'))
-        if month < 1:
-            month = 12
-
-        df.insert(0, 'year', year, False)
-        df.insert(0, 'month', year, False)
+    def complimentary_inject(self):
+        pass
+        # This is probably a worthless file in PowerBI - Don't bother
+        # df = self.df_dl
+        # df.insert(0, 'year', year, False)
+        # df.insert(0, 'month', year, False)
 
     def ficon(self):
         df = self.df_dl
+        # df['year'] = self.ms_year
         df = df.drop(['mobile'], axis=1)
 
         df2 = pd.concat([self.df_master, df], ignore_index=True)
-        df2 = df2.drop(['Column1'], axis=1)
+        # df2 = df2.drop(['Column1'], axis=1)
 
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/Microsoft/ficon_master_raw.csv', index=False, encoding='utf-8-sig')
@@ -498,10 +541,30 @@ class TransformMaster:
     def asus_qbr(self, asus_map):
         df = self.df_dl
 
-        df = pd.merge(df, asus_map, left_on='pn', right_on='MPN', how='left')
+        month = self.s_month.split('-')
+        mon = calendar_month(month[1])
+        if mon < 4:
+            quarter = 'Q1'
+        elif mon >= 4 & mon <= 6:
+            quarter = 'Q2'
+        elif mon > 9:
+            quarter = 'Q4'
+        else:
+            quarter = 'Q3'
 
-        df = df.rename(columns={'Business unit': 'Business Unit'})
-        df = df[['Year', 'Month', 'Quarter', 'mfr_name', 'partner', 'pn', 'access_country_name', 'requested_language', 'program', 'Labels', 'Supcean', 'NewPN', 'Category', 'Business', 'Unit', 'ProductId', 'inline_content_impressions', 'inline_content_viewport', 'inline_content_interactions', 'interacted_inline', 'video_play', 'feature_zoom', 'feature_hover', 'gallery_zoom', 'gallery_hover', 'hotspot_interactions', 'interactions_360', 'comptable_interactions']]
+        df['Quarter'] = quarter
+        df = df[df['partner'].str.startswith('1World') == False]
+        df = df[df['access_country_name'].isin(['USA', 'Canada'])]
+        print(df)
+        df = pd.merge(df, asus_map, left_on='pn', right_on='MPN', how='left')
+        print(df)
+
+        df = df.rename(columns={'Business unit': 'Business Unit', 'Model #': 'NewPN'})
+        df = df[['Year', 'Month', 'Quarter', 'mfr_name', 'partner', 'pn', 'access_country_name', 'requested_language',
+                 'program', 'Labels', 'Supcean', 'NewPN', 'Category', 'Business Unit', 'ProductId',
+                 'inline_content_impressions', 'inline_content_viewport', 'inline_content_interactions',
+                 'interacted_inline', 'video_play', 'feature_zoom', 'feature_hover', 'gallery_zoom', 'gallery_hover',
+                 'hotspot_interactions', 'interactions_360', 'comptable_interactions']]
 
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
@@ -509,10 +572,9 @@ class TransformMaster:
         df2.to_csv(f'{self.archive_path}asus_qbr_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
 
-
     def hp_inject(self):
         df = self.df_dl
-
+        df['Year'] = self.ms_year
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/HPLenovoDEllXIS/hp_injection_raw.csv', index=False, encoding='utf-8-sig')
@@ -529,12 +591,13 @@ class TransformMaster:
     def dell_inject(self):
         df = self.df_dl
 
+        df['Year'] = self.ms_year
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/HPLenovoDEllXIS/dell_injection_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'{self.archive_path}dell_injection_raw.csv', index=False, encoding='utf-8-sig')
 
-        df3 = pd.read_csv('Master/HPMS_Injection_data_append_new.csv', low_memory=False)
+        df3 = pd.read_csv('Master/DellMS_Injection_data.csv', low_memory=False)
         df = df.rename(columns={'Month': 'MonthNum', 'Inj': 'inj'})
         df.insert(2, 'Month', self.s_month, False)
 
@@ -545,6 +608,7 @@ class TransformMaster:
     def lenovo_inject(self):
         df = self.df_dl
 
+        df['Year'] = self.ms_year
         df2 = pd.concat([self.df_master, df], ignore_index=True)
         df.to_csv(self.stage, sep='\t', index=False)
         df2.to_csv('Workbench/HPLenovoDEllXIS/lenovo_injection_raw.csv', index=False, encoding='utf-8-sig')
@@ -560,6 +624,7 @@ class TransformMaster:
 
     def xis_inject(self, partner_map, product_map):
         df = self.df_dl
+        df['year'] = self.ms_year
         df['mm'] = self.s_month
 
         df = pd.merge(df, partner_map, left_on='partner', right_on='Partner (Pre-aggregated)', how='left')
@@ -583,15 +648,18 @@ class TransformMaster:
         df2.to_csv('Workbench/HPLenovoDEllXIS/xis_injection_raw.csv', index=False, encoding='utf-8-sig')
         df2.to_csv(f'{self.archive_path}xis_injection_raw.csv', index=False, encoding='utf-8-sig')
 
-        df['model'] = ''
-        df = df.drop(['Account'], axis=1)
-        df3 = pd.read_csv('Master/MS_XIS.csv', low_memory=False)
-        df3 = pd.concat([df3, df], ignore_index=True)
-        df3.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
-        df3.to_csv(f'{self.archive_path}W11_Source.csv', index=False, encoding='utf-8-sig')
+        df2['model'] = ''
+        df2 = df2.drop(['Account'], axis=1)
+        df2['mm'] = df2['mm'].str.replace('=', '')
+        df2['mm'] = df2['mm'].str.replace('"', '')
+        # df3 = pd.read_csv('Master/xis_injection_raw.csv', low_memory=False)
+        # df3 = pd.concat([df3, df], ignore_index=True)
+        df2.to_csv(self.power_bi, index=False, encoding='utf-8-sig')
+        # df2.to_csv(f'{self.archive_path}xis_injection_raw.csv', index=False, encoding='utf-8-sig')
 
     def url_inject(self):
         df = self.df_dl
+        df['Year'] = self.ms_year
 
         df = df.rename(columns={'Inj': 'inj'})
         df = df[['mfr_name', 'Sponsor', 'ClearMfPn', 'access_country_name', 'requested_language', 'partner_name', 'Url',

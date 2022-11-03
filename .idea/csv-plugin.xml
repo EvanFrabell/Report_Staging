@@ -3,14 +3,70 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="\Master\Archive\6-2022\dccn_partner_detail_raw.csv">
+        <entry key="\Master\Archive\1-2023\DCCN_Asset data_source.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\Master\Archive\6-2022\dccn_simplified_asset_raw.csv">
+        <entry key="\Master\Archive\1-2023\Gated_Content_Topic.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\1-2023\MS_XIS.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\1-2023\dccn_gated_content_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\1-2023\dccn_simplified_asset_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\1-2023\hplenovodell_url_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\1-2023\xbox_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\11-2022\dccn_partner_detail_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Archive\12-2022\dccn_partner_detail_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\Gated_Content_Topic.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -18,6 +74,20 @@
           </value>
         </entry>
         <entry key="\Master\MS_AR_Source.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\MS_XIS.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Master\W11_Source.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -59,7 +129,14 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\Master_bkp\6-2022\epson_raw.csv">
+        <entry key="\Master\xis_injection_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Misc\Dolby_07182022.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -136,7 +213,35 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\Workbench\Epson\epson_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Workbench\Microsoft\dccn_partner_detail_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Workbench\Microsoft\dccn_simplified_asset_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\Workbench\Microsoft\surface_raw.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Workbench\Microsoft\xis_injection_raw.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
